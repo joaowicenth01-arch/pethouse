@@ -6,6 +6,7 @@ const reset = document.querySelector('.reset');
 const results = document.querySelector('#resultados');
 const status = document.querySelector('#service-status');
 const dialog = document.querySelector('#service-dialog');
+dialog.querySelector('a[href="#contato"]').addEventListener('click', () => dialog.close());
 const plain = (text) => text.normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase();
 
 function filter({ category = '', query = '' } = {}) {
@@ -35,11 +36,10 @@ filters.forEach(button => button.addEventListener('click', () => {
 }));
 reset.addEventListener('click', () => { input.value = ''; filter(); document.querySelector('[data-filter]').focus({preventScroll:true}); });
 const detail = {
-  consultas: 'Fale com a UbPet para marcar uma consulta para seu cão ou gato. Informe o motivo da visita para a equipe orientar o agendamento.',
-  castracao: 'A equipe orienta sobre a avaliação antes da cirurgia e informa as datas e condições das próximas campanhas de castração social.',
-  exames: 'Consulte a disponibilidade do exame e confirme com a equipe se há alguma orientação de preparo.',
-  especialidades: 'Conte à equipe qual atendimento seu pet precisa e confirme as especialidades e os horários disponíveis.',
-  medicacoes: 'Tenha a receita em mãos, se houver, e consulte a equipe sobre disponibilidade e orientações.'
+  consultas: 'Fale com a unidade mais próxima para marcar uma consulta veterinária para seu pet.',
+  banho: 'A Pet’s House oferece banho e tosa com Medicina Chinesa. Fale com a equipe para conhecer o serviço e agendar.',
+  oftalmologia: 'Fale com a equipe sobre a avaliação oftalmológica e confirme a disponibilidade do atendimento.',
+  petshop: 'Consulte a unidade de sua preferência sobre marcas, tamanhos e disponibilidade dos produtos.'
 };
 document.querySelectorAll('[data-detail]').forEach(button => button.addEventListener('click', () => {
   dialog.querySelector('#detail-title').textContent = button.closest('.card').querySelector('h4').textContent;
