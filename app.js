@@ -1,48 +1,108 @@
-const form = document.querySelector('.search');
-const input = document.querySelector('#query');
-const cards = Array.from(document.querySelectorAll('.card'));
-const filters = Array.from(document.querySelectorAll('[data-filter]'));
-const reset = document.querySelector('.reset');
-const results = document.querySelector('#resultados');
-const status = document.querySelector('#service-status');
-const dialog = document.querySelector('#service-dialog');
-dialog.querySelector('a[href="#contato"]').addEventListener('click', () => dialog.close());
-const plain = (text) => text.normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase();
+const searchForm = document.querySelector('.search');
+const searchInput = document.querySelector('#query');
+const productsSection = document.querySelector('#produtos');
+const productCards = Array.from(document.querySelectorAll('.product-card'));
+const serviceCards = Array.from(document.querySelectorAll('.service-card'));
+const filterButtons = Array.from(document.querySelectorAll('[data-product-filter]'));
+const searchStatus = document.querySelector('#catalogue-status');
+const dialog = document.querySelector('#detail-dialog');
+const menuButton = document.querySelector('.menu-toggle');
+const navigation = document.querySelector('#navigation');
 
-function filter({ category = '', query = '' } = {}) {
-  const words = plain(query).split(/\s+/).filter(Boolean);
-  const active = Boolean(category || words.length);
-  filters.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.filter === category)));
-  let count = 0;
-  cards.forEach(card => {
-    const searchable = plain(card.dataset.keywords + ' ' + card.textContent);
-    const visible = category ? card.dataset.category === category : words.every(word => searchable.includes(word));
-    card.hidden = !visible;
-    if (visible) count++;
-  });
-  reset.hidden = !active;
-  status.textContent = !active ? 'Encontre o cuidado que seu pet precisa.' :
-    count === 0 ? 'Nenhum serviço encontrado. Tente outro termo ou veja todos.' :
-    count === 1 ? '1 serviço encontrado.' : `${count} serviços encontrados.`;
+function normalize(text) {
+  return text.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
 }
-function showResults() { results.scrollIntoView({block:'start'}); }
-form.addEventListener('submit', event => { event.preventDefault(); filter({query:input.value}); showResults(); });
-input.addEventListener('input', () => { if (!input.value) filter(); });
-filters.forEach(button => button.addEventListener('click', () => {
-  const active = button.getAttribute('aria-pressed') === 'true';
-  input.value = '';
-  filter({category:active ? '' : button.dataset.filter});
-  showResults();
-}));
-reset.addEventListener('click', () => { input.value = ''; filter(); document.querySelector('[data-filter]').focus({preventScroll:true}); });
-const detail = {
-  consultas: 'Fale com a unidade mais próxima para marcar uma consulta veterinária para seu pet.',
-  banho: 'A Pet’s House oferece banho e tosa com Medicina Chinesa. Fale com a equipe para conhecer o serviço e agendar.',
-  oftalmologia: 'Fale com a equipe sobre a avaliação oftalmológica e confirme a disponibilidade do atendimento.',
-  petshop: 'Consulte a unidade de sua preferência sobre marcas, tamanhos e disponibilidade dos produtos.'
+
+function filterProducts(category = '') {
+  productCards.forEach(card => {
+    card.hidden = Boolean(category && card.dataset.category !== category);
+  });
+  serviceCards.forEach(card => { card.hidden = false; });
+  filterButtons.forEach(button => {
+    button.setAttribute('aria-pressed', String(button.dataset.productFilter === category));
+  });
+  searchStatus.hidden = true;
+  searchInput.value = '';
+}
+
+function scrollToProducts() {
+  productsSection.scrollIntoView({ block: 'start' });
+}
+
+searchForm.addEventListener('submit', event => {
+  event.preventDefault();
+  const words = normalize(searchInput.value).split(/\s+/).filter(Boolean);
+  let count = 0;
+  [...productCards, ...serviceCards].forEach(card => {
+    const text = normalize(card.dataset.keywords + ' ' + card.textContent);
+    card.hidden = !words.every(word => text.includes(word));
+    if (!card.hidden) count++;
+  });
+  filterButtons.forEach(button => button.setAttribute('aria-pressed', 'false'));
+  searchStatus.hidden = words.length === 0;
+  searchStatus.textContent = count === 0
+    ? 'Nenhum resultado. Tente outra busca ou selecione Todos.'
+    : count + ' resultado' + (count === 1 ? '' : 's') + ' em produtos e serviços.';
+  scrollToProducts();
+});
+
+searchInput.addEventListener('input', () => {
+  if (!searchInput.value) filterProducts();
+});
+
+filterButtons.forEach(button => {
+  button.addEventListener('click', () => filterProducts(button.dataset.productFilter));
+});
+
+document.querySelectorAll('[data-category-link]').forEach(link => {
+  link.addEventListener('click', () => filterProducts(link.dataset.categoryLink));
+});
+
+document.querySelectorAll('[data-service-link]').forEach(link => {
+  link.addEventListener('click', () => filterProducts());
+});
+
+const productDetails = {
+  gatos: ['Ração para gatos', 'Consulte as marcas, as opções para cada fase de vida e a disponibilidade na unidade de sua preferência.'],
+  caes: ['Ração para cães', 'Converse com a equipe sobre as opções de alimentação para cães e confirme marcas, tamanhos e valores.'],
+  brinquedos: ['Brinquedos e acessórios', 'Encontre opções para a rotina de brincadeiras do seu pet. Consulte os modelos e a disponibilidade com a equipe.'],
+  higiene: ['Higiene e cuidados', 'Consulte os produtos para a rotina de higiene do seu pet. A equipe informa opções e disponibilidade.']
 };
-document.querySelectorAll('[data-detail]').forEach(button => button.addEventListener('click', () => {
-  dialog.querySelector('#detail-title').textContent = button.closest('.card').querySelector('h4').textContent;
-  dialog.querySelector('#detail-copy').textContent = detail[button.dataset.detail];
+
+const serviceDetails = {
+  consultas: ['Clínica veterinária', 'Fale com a unidade mais próxima para marcar uma consulta veterinária e informe o motivo da visita.'],
+  banho: ['Banho e tosa', 'Conheça o banho e tosa com Medicina Chinesa da Pet’s House. Consulte a equipe sobre o serviço e os horários disponíveis.'],
+  oftalmologia: ['Oftalmologia', 'Converse com a equipe sobre a avaliação oftalmológica e confirme a disponibilidade do atendimento.']
+};
+
+function openDetails(detail) {
+  document.querySelector('#detail-title').textContent = detail[0];
+  document.querySelector('#detail-copy').textContent = detail[1];
   dialog.showModal();
-}));
+}
+
+document.querySelectorAll('[data-product-detail]').forEach(button => {
+  button.addEventListener('click', () => openDetails(productDetails[button.dataset.productDetail]));
+});
+
+document.querySelectorAll('[data-service-detail]').forEach(button => {
+  button.addEventListener('click', () => openDetails(serviceDetails[button.dataset.serviceDetail]));
+});
+
+dialog.querySelector('a[href="#contato"]').addEventListener('click', () => dialog.close());
+
+menuButton.addEventListener('click', () => {
+  const expanded = menuButton.getAttribute('aria-expanded') === 'true';
+  menuButton.setAttribute('aria-expanded', String(!expanded));
+  menuButton.setAttribute('aria-label', expanded ? 'Abrir menu' : 'Fechar menu');
+  navigation.classList.toggle('is-open', !expanded);
+});
+
+navigation.querySelectorAll('a').forEach(link => {
+  link.addEventListener('click', () => {
+    menuButton.setAttribute('aria-expanded', 'false');
+    menuButton.setAttribute('aria-label', 'Abrir menu');
+    navigation.classList.remove('is-open');
+    if (link.hash === '#servicos') filterProducts();
+  });
+});
